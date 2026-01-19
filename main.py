@@ -15,8 +15,8 @@ load_dotenv()
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_USER ="officialmuhammadzain45@gmail.com"
-SMTP_PASSWORD = "gezh bmlf lnaf lirz"
+SMTP_USER = os.environ.get("SMTP_MAIL")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 
 client = ChatNVIDIA(
   model="meta/llama-3.3-70b-instruct",
