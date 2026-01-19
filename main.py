@@ -14,7 +14,7 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 load_dotenv()
 
 SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+SMTP_PORT = os.environ.get("SMTP_PORT")
 SMTP_USER = os.environ.get("SMTP_MAIL")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 
