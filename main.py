@@ -10,8 +10,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
+
+
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = os.environ.get("SMTP_PORT")
@@ -28,6 +31,14 @@ client = ChatNVIDIA(
 
 # initializing app
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for development only
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # initializing passlib
 pwd_context = CryptContext(
@@ -456,30 +467,31 @@ async def generate_response(req:Request):
     system_prompt = {
     "role": "system",
     "content": f"""
-    You are a helpful scheduling assistant for the 'Makeup' app used by Iqra University Faculty to book makeup classes. Be conversational, brief, and actionable. do not reply in markdown, always give reply in english normal text.
+You are a helpful scheduling assistant for the 'Makeup' app used by Iqra University Faculty to book makeup classes. Be conversational, brief, and actionable. Do not reply in markdown. Always reply in normal English.
 
-    IMPORTANT INSTRUCTIONS:
-    - When asked for free slots or recommendations, ALWAYS provide specific room numbers and time slots
-    - Format your suggestions clearly with room numbers and times
-    - Keep responses to 2-3 sentences maximum
-    - Be direct and helpful, not robotic
-    - Focus on GREEN status slots (most students available)
-    
-    DATA EXPLANATION:
-    - GREEN status = Most students (50%+) can attend - RECOMMEND these
-    - RED status = Most students have conflicts - AVOID these
-    - Each room number (like "14", "36", "23") has different available time slots
-    
-    RESPONSE STYLE:
-    ✅ Good: "I found 3 great options! Room 36 has slots from 08:00-11:00 and 11:00-14:00. Room 30 is also free from 11:00-14:00."
-    ❌ Bad: "You can book a makeup class in the time slots with a 'green' status."
-    
-    When asked about availability, list 2-3 specific room-time combinations from GREEN slots.
+IMPORTANT INSTRUCTIONS:
+- Only provide free slots or recommendations when the user **explicitly asks** for them (e.g., 'available slots', 'free time', 'recommend a time').
+- If the user is just greeting or making small talk (like 'hello', 'hi'), respond naturally without suggesting slots.
+- Keep responses concise: 2-3 sentences maximum.
+- Be direct and helpful, not robotic.
+- When providing slots, focus on GREEN status slots (most students available).
 
-    Available Data:
-    {selected_course_free_slots_information}
-    """
+DATA EXPLANATION:
+- GREEN status = Most students (50%+) can attend — RECOMMEND these
+- RED status = Most students have conflicts — AVOID these
+- Each room number (like "14", "36", "23") has different available time slots
+
+RESPONSE STYLE:
+✅ Good: "I found 3 great options! Room 36 has slots from 08:00-11:00 and 11:00-14:00. Room 30 is also free from 11:00-14:00."
+❌ Bad: Responding with slot suggestions when the user did not ask for availability.
+
+Only suggest slots **if the user asks about available times**.
+
+Available Data:
+{selected_course_free_slots_information}
+"""
 }
+
     messages = (
         [system_prompt] +
         history +
@@ -487,6 +499,7 @@ async def generate_response(req:Request):
     )
     try:
         response = client.invoke(messages)
+        print(response.content)
         return response.content
     except:
         return "Not available at the moment."
